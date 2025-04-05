@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AI Interview</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body class="p-4">
+  <h2>AI Interview System</h2>
+
+  <!-- PDF 업로드 -->
+  <div class="mb-3">
+    <label for="pdf" class="form-label">Upload Resume PDF:</label>
+    <input type="file" id="pdf" class="form-control">
+    <button onclick="uploadPDF()" class="btn btn-primary mt-2">Upload</button>
+  </div>
+
+  <!-- 질문 출력 -->
+  <div class="mb-3">
+    <h5>Generated Questions:</h5>
+    <ul id="questionList"></ul>
+  </div>
+
+  <!-- 영상 촬영 및 업로드 -->
+  <div class="mb-3">
+    <h5>Interview Video</h5>
+    <button onclick="startRecording()" class="btn btn-success">Start</button>
+    <button onclick="stopRecording()" class="btn btn-danger">Stop & Upload</button>
+    <video id="preview" autoplay muted></video>
+  </div>
+
+  <!-- 분석 결과 -->
+  <div class="mb-3">
+    <h5>Interview Analysis Result:</h5>
+    <p id="resultText"></p>
+  </div>
+
+  <script>
+    let mediaRecorder, recordedChunks = [], resumeId = "";
+    async function uploadPDF() {
+      const file = document.getElementById("pdf").files[0];
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("http://localhost:8000/upload_resume", { method: "POST", body: formData });
+      const data = await res.json();
+      resumeId = data.resume_id;
+      const list = document.getElementById("questionList");
+      list.innerHTML = "";
+      data.questions.forEach(q => {
+        const li = document.createElement("li");
+        li.innerText = q;
+        list.appendChild(li);
+      });
+    }
+
+    async function startRecording() {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      document.getElementById("preview").srcObject = stream;
+      recordedChunks = [];
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.ondataavailable = e => recordedChunks.push(e.data);
+      mediaRecorder.start();
+    }
+
+    async function stopRecording() {
+      mediaRecorder.stop();
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(recordedChunks, { type: "video/webm" });
+        const formData = new FormData();
+        formData.append("file", blob);
+        formData.append("resume_id", resumeId);
+        await fetch("http://localhost:8000/upload_video", { method: "POST", body: formData });
+
+        const res = await fetch(`http://localhost:8000/get_result/${resumeId}`);
+        const data = await res.json();
+        document.getElementById("resultText").innerText = data.result;
+      };
+    }
+  </script>
+</body>
+</html>

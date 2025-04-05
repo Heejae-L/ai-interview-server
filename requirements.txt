@@ -1,0 +1,30 @@
+# ▶ FastAPI & 서버 관련
+fastapi
+uvicorn
+python-multipart
+typer
+PyPDF2
+pymupdf
+python-dotenv
+
+
+# ▶ Static 파일 & HTML 응답
+aiofiles  # fastapi에서 static 파일 처리용
+jinja2    # 템플릿 렌더링 시 필요할 수 있음 (선택)
+
+# ▶ 영상 & 오디오
+opencv-python-headless  # Docker에서는 headless 버전 추천
+pyaudio
+pydub
+gtts
+openai-whisper
+
+# ▶ AI 모델 관련
+torch==2.0.1
+numpy
+openai
+ipython
+
+
+# ▶ 웹 UI 분석용 (만약 사용하는 경우)
+python-dotenv
