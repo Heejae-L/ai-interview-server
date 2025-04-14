@@ -7,11 +7,11 @@
 <body class="p-4">
   <h2>AI Interview System</h2>
 
-  <!-- PDF 업로드 -->
+  <!-- 이력서 텍스트 입력 -->
   <div class="mb-3">
-    <label for="pdf" class="form-label">Upload Resume PDF:</label>
-    <input type="file" id="pdf" class="form-control">
-    <button onclick="uploadPDF()" class="btn btn-primary mt-2">Upload</button>
+    <h5>Enter Your Resume Information:</h5>
+    <textarea id="resumeText" class="form-control" rows="10" placeholder="Write your resume content here..."></textarea>
+    <button onclick="submitResume()" class="btn btn-primary mt-2">Generate Questions</button>
   </div>
 
   <!-- 질문 출력 -->
@@ -36,11 +36,15 @@
 
   <script>
     let mediaRecorder, recordedChunks = [], resumeId = "";
-    async function uploadPDF() {
-      const file = document.getElementById("pdf").files[0];
-      const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("http://localhost:8000/upload_resume", { method: "POST", body: formData });
+    const BASE_URL = "https://ai-interview.onrender.com";
+    
+    async function submitResume() {
+      const resumeText = document.getElementById("resumeText").value;
+      const res = await fetch(`${BASE_URL}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: resumeText })
+      });
       const data = await res.json();
       resumeId = data.resume_id;
       const list = document.getElementById("questionList");
@@ -62,19 +66,31 @@
     }
 
     async function stopRecording() {
-      mediaRecorder.stop();
-      mediaRecorder.onstop = async () => {
-        const blob = new Blob(recordedChunks, { type: "video/webm" });
-        const formData = new FormData();
-        formData.append("file", blob);
-        formData.append("resume_id", resumeId);
-        await fetch("http://localhost:8000/upload_video", { method: "POST", body: formData });
+  mediaRecorder.stop();
+  mediaRecorder.onstop = async () => {
+    const blob = new Blob(recordedChunks, { type: "video/webm" });
 
-        const res = await fetch(`http://localhost:8000/get_result/${resumeId}`);
-        const data = await res.json();
-        document.getElementById("resultText").innerText = data.result;
-      };
+    // 카메라 스트림 종료
+    const videoElement = document.getElementById("preview");
+    const stream = videoElement.srcObject;
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());  // 모든 트랙 정지
+      videoElement.srcObject = null;                      // 스트림 제거
     }
+
+    // 서버에 업로드
+    const formData = new FormData();
+    formData.append("file", blob);
+    formData.append("resume_id", resumeId);
+    await fetch(`${BASE_URL}/upload_video`, { method: "POST", body: formData });
+
+    // 분석 결과 가져오기
+    const res = await fetch(`${BASE_URL}/get_result/${resumeId}`);
+    const data = await res.json();
+    document.getElementById("resultText").innerText = data.result;
+  };
+}
+
   </script>
 </body>
 </html>
