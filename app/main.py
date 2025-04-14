@@ -48,9 +48,11 @@ class ResumeText(BaseModel):
 @app.post("/upload_resume_text")
 async def upload_resume_text(payload: ResumeText):
     resume_id = str(uuid.uuid4())
+    print(f"[Resume Received] ID: {resume_id}")
     questions = generate_questions(payload.text)
     questions_storage[resume_id] = questions
-    return {"resume_id": resume_id, "questions": questions}
+    return {"status": "received", "resume_id": resume_id, "questions": questions}
+
 
 # 질문 조회
 @app.get("/get_questions/{resume_id}")

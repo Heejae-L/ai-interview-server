@@ -25,7 +25,12 @@
     <h5>Interview Video</h5>
     <button onclick="startRecording()" class="btn btn-success">Start</button>
     <button onclick="stopRecording()" class="btn btn-danger">Stop & Upload</button>
-    <video id="preview" autoplay muted></video>
+    <video id="preview" autoplay muted class="mt-2" style="width: 100%; max-width: 640px;"></video>
+  </div>
+
+  <!-- 서버 응답 상태 -->
+  <div class="mb-3">
+    <p id="statusMessage" class="text-success"></p>
   </div>
 
   <!-- 분석 결과 -->
@@ -36,17 +41,21 @@
 
   <script>
     let mediaRecorder, recordedChunks = [], resumeId = "";
-    const BASE_URL = "https://ai-interview.onrender.com";
-    
+    const BASE_URL = "https://ai-interview.onrender.com"; // Render 서버 주소
+
     async function submitResume() {
       const resumeText = document.getElementById("resumeText").value;
-      const res = await fetch(`${BASE_URL}`, {
+      document.getElementById("statusMessage").innerText = "Resume sent. Waiting for questions...";
+      
+      const res = await fetch(`${BASE_URL}/upload_resume_text`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: resumeText })
       });
+
       const data = await res.json();
       resumeId = data.resume_id;
+
       const list = document.getElementById("questionList");
       list.innerHTML = "";
       data.questions.forEach(q => {
@@ -54,6 +63,8 @@
         li.innerText = q;
         list.appendChild(li);
       });
+
+      document.getElementById("statusMessage").innerText = "Questions generated successfully.";
     }
 
     async function startRecording() {
@@ -66,31 +77,33 @@
     }
 
     async function stopRecording() {
-  mediaRecorder.stop();
-  mediaRecorder.onstop = async () => {
-    const blob = new Blob(recordedChunks, { type: "video/webm" });
+      mediaRecorder.stop();
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(recordedChunks, { type: "video/webm" });
 
-    // 카메라 스트림 종료
-    const videoElement = document.getElementById("preview");
-    const stream = videoElement.srcObject;
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());  // 모든 트랙 정지
-      videoElement.srcObject = null;                      // 스트림 제거
+        // 카메라 스트림 종료
+        const videoElement = document.getElementById("preview");
+        const stream = videoElement.srcObject;
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+          videoElement.srcObject = null;
+        }
+
+        document.getElementById("statusMessage").innerText = "Uploading video...";
+
+        const formData = new FormData();
+        formData.append("file", blob);
+        formData.append("resume_id", resumeId);
+
+        await fetch(`${BASE_URL}/upload_video`, { method: "POST", body: formData });
+
+        const res = await fetch(`${BASE_URL}/get_result/${resumeId}`);
+        const data = await res.json();
+        document.getElementById("resultText").innerText = data.result;
+
+        document.getElementById("statusMessage").innerText = "Video uploaded and analysis complete.";
+      };
     }
-
-    // 서버에 업로드
-    const formData = new FormData();
-    formData.append("file", blob);
-    formData.append("resume_id", resumeId);
-    await fetch(`${BASE_URL}/upload_video`, { method: "POST", body: formData });
-
-    // 분석 결과 가져오기
-    const res = await fetch(`${BASE_URL}/get_result/${resumeId}`);
-    const data = await res.json();
-    document.getElementById("resultText").innerText = data.result;
-  };
-}
-
   </script>
 </body>
 </html>
