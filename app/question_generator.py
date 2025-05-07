@@ -1,4 +1,4 @@
-from app.interviewFIN2 import InterviewQuestionMaker
+from interviewFIN2 import InterviewQuestionMaker
 
 # 기본 질문 세트
 DEFAULT_QUESTIONS = [

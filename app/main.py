@@ -4,11 +4,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import shutil, os, uuid
-from app.question_generator import generate_questions
+from question_generator import generate_questions
 from subprocess import run
-from app.question_generator import generate_questions_from_text
+from question_generator import generate_questions_from_text
 
-from app.question_generator import generate_static_questions
+from question_generator import generate_static_questions
 
 # 앱 생성
 app = FastAPI()
