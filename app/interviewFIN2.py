@@ -125,6 +125,14 @@ class InterviewQuestionMaker:
         pdf_str = self.pdf_to_str(pdf_stream)
         prompt = self.complete_prompt(pdf_str)
         return query_ai(self.config, prompt)
+    
+    # 텍스트기반 질문 생성
+    def create_questions_from_text(self, raw_text: str) -> str:
+        prompt = self.complete_prompt(raw_text)
+        return query_ai(self.config, prompt)
+
+    def complete_prompt(self, resume_text: str) -> str:
+        return self.prompt.format(resume=resume_text)
 
     def complete_prompt(self, pdf_str: str) -> str:
         """

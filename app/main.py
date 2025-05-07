@@ -4,8 +4,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import shutil, os, uuid
-from question_generator import generate_questions  # 텍스트 입력도 지원해야 함
+from app.question_generator import generate_questions
 from subprocess import run
+from app.question_generator import generate_questions_from_text
+
+from app.question_generator import generate_static_questions
 
 # 앱 생성
 app = FastAPI()
@@ -45,15 +48,14 @@ async def favicon():
 class ResumeText(BaseModel):
     text: str
 
+
 @app.post("/upload_resume_text")
 async def upload_resume_text(payload: ResumeText):
     resume_id = str(uuid.uuid4())
-    print(f"[Resume Received] ID: {resume_id}")
-    questions = generate_questions(payload.text)
+    print(f"[Static Resume Received] ID: {resume_id}")
+    questions = generate_static_questions()
     questions_storage[resume_id] = questions
     return {"status": "received", "resume_id": resume_id, "questions": questions}
-
-
 # 질문 조회
 @app.get("/get_questions/{resume_id}")
 async def get_questions(resume_id: str):
