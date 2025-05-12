@@ -84,7 +84,7 @@ def analyze_mistake_log(video_path: str) -> str:
 # 인터뷰 영상 업로드
 @app.post("/upload_video")
 async def upload_video(resume_id: str = Form(...), file: UploadFile = File(...)):
-    video_path = f"{VIDEO_DIR}/{resume_id}.webm"
+    video_path = f"{VIDEO_DIR}/{resume_id}.mp4"
     with open(video_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 

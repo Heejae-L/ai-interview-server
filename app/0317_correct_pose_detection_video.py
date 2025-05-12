@@ -93,13 +93,18 @@ def check_facing_forward(landmarks):
 
 # 메인 실행 함수
 def main():
-    video_path = "app/interview.mp4"  # 분석할 비디오 파일 경로
-    cap = cv2.VideoCapture(video_path)
-    
-    if not cap.isOpened():
-        print("영상을 열 수 없습니다.")
+    if len(sys.argv) < 2:
+        print("사용법: python3 0317_correct_pose_detection_video.py <video_path>")
         return
-    
+
+    video_path = sys.argv[1]
+    print(f"[INFO] 분석 대상 영상: {video_path}")
+
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        print(f"[ERROR] 영상을 열 수 없습니다: {video_path}")
+        return
+
     fps = cap.get(cv2.CAP_PROP_FPS)
     frame_count = 0
     
