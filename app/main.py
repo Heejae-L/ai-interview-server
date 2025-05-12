@@ -63,7 +63,7 @@ async def get_questions(resume_id: str):
 
 # 분석 결과 불러오기
 def analyze_mistake_log(video_path: str) -> str:
-    log_file = "mistakes_log.txt"
+    log_file = os.path.join("app", "logs", "mistakes_log.txt")
     if not os.path.exists(log_file):
         return "분석 실패 또는 오류 발생"
 

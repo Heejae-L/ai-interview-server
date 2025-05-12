@@ -12,9 +12,11 @@ previous_positions = None
 
 # 잘못된 자세 로그 저장 함수
 def log_mistakes_to_txt(mistakes, timestamp):
-    with open("/mistakes_log.txt", "a") as file:
+    log_path = os.path.join(os.path.dirname(__file__), "logs", "mistakes_log.txt")
+    with open(log_path, "a") as file:
         for mistake in mistakes:
             file.write(f"{timestamp:.2f} sec: {mistake}\n")
+
 
 # 몸의 흔들림 판단 함수
 def check_body_stability(landmarks, threshold=0.05):
