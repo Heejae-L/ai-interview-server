@@ -91,7 +91,7 @@ def check_facing_forward(landmarks):
 
 # 메인 실행 함수
 def main():
-    video_path = "interview.mp4"  # 분석할 비디오 파일 경로
+    video_path = "app/interview.mp4"  # 분석할 비디오 파일 경로
     cap = cv2.VideoCapture(video_path)
     
     if not cap.isOpened():

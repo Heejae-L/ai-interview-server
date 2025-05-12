@@ -61,6 +61,26 @@ async def upload_resume_text(payload: ResumeText):
 async def get_questions(resume_id: str):
     return {"questions": questions_storage.get(resume_id, [])}
 
+# 분석 결과 불러오기
+def analyze_mistake_log(video_path: str) -> str:
+    log_file = "mistakes_log.txt"
+    if not os.path.exists(log_file):
+        return "분석 실패 또는 오류 발생"
+
+    with open(log_file, "r") as f:
+        lines = f.readlines()
+
+    if len(lines) == 0:
+        return "자세가 매우 양호합니다!"
+
+    unique_mistakes = set()
+    for line in lines:
+        if ':' in line:
+            unique_mistakes.add(line.strip().split(": ")[1])
+    
+    feedback = "다음과 같은 자세 문제가 감지되었습니다:\n" + "\n".join(f"- {m}" for m in unique_mistakes)
+    return feedback
+
 # 인터뷰 영상 업로드
 @app.post("/upload_video")
 async def upload_video(resume_id: str = Form(...), file: UploadFile = File(...)):
@@ -68,13 +88,15 @@ async def upload_video(resume_id: str = Form(...), file: UploadFile = File(...))
     with open(video_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    # 자세 분석 스크립트 실행 (인자로 파일 경로 넘김)
+    # 자세 분석 실행
     run(["python3", "0317_correct_pose_detection_video.py", video_path])
 
-    # 분석 결과 저장
-    feedback = f"분석 완료 - {resume_id} 자세가 양호함"
+    # 분석 결과 로그에서 피드백 생성
+    feedback = analyze_mistake_log(video_path)
     result_storage[resume_id] = feedback
+
     return {"status": "ok"}
+
 
 # 분석 결과 확인
 @app.get("/get_result/{resume_id}")
