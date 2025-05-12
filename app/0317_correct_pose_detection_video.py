@@ -12,7 +12,7 @@ previous_positions = None
 
 # 잘못된 자세 로그 저장 함수
 def log_mistakes_to_txt(mistakes, timestamp):
-    with open("mistakes_log.txt", "a") as file:
+    with open("/mistakes_log.txt", "a") as file:
         for mistake in mistakes:
             file.write(f"{timestamp:.2f} sec: {mistake}\n")
 
