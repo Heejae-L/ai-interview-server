@@ -3,107 +3,215 @@
 <head>
   <title>AI Interview</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <style>
+    #resultText pre { /* 로그 텍스트를 보기 좋게 표시하기 위한 스타일 */
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+      padding: 10px;
+      white-space: pre-wrap; /* 긴 줄 자동 줄바꿈 */
+      word-wrap: break-word;
+    }
+  </style>
 </head>
 <body class="p-4">
   <h2>AI Interview System</h2>
 
-  <!-- 이력서 텍스트 입력 -->
   <div class="mb-3">
     <h5>Enter Your Resume Information:</h5>
     <textarea id="resumeText" class="form-control" rows="10" placeholder="Write your resume content here..."></textarea>
     <button onclick="submitResume()" class="btn btn-primary mt-2">Generate Questions</button>
   </div>
 
-  <!-- 질문 출력 -->
   <div class="mb-3">
     <h5>Generated Questions:</h5>
     <ul id="questionList"></ul>
   </div>
 
-  <!-- 영상 촬영 및 업로드 -->
   <div class="mb-3">
     <h5>Interview Video</h5>
-    <button onclick="startRecording()" class="btn btn-success">Start</button>
-    <button onclick="stopRecording()" class="btn btn-danger">Stop & Upload</button>
-    <video id="preview" autoplay muted class="mt-2" style="width: 100%; max-width: 640px;"></video>
+    <button id="startButton" onclick="startRecording()" class="btn btn-success">Start Recording</button>
+    <button id="stopButton" onclick="stopRecordingAndUpload()" class="btn btn-danger" disabled>Stop & Upload</button>
+    <video id="preview" autoplay muted class="mt-2" style="width: 100%; max-width: 640px; border: 1px solid #ccc;"></video>
   </div>
 
-  <!-- 서버 응답 상태 -->
   <div class="mb-3">
-    <p id="statusMessage" class="text-success"></p>
+    <p id="statusMessage" class="text-info"></p>
   </div>
 
-  <!-- 분석 결과 -->
   <div class="mb-3">
-    <h5>Interview Analysis Result:</h5>
-    <p id="resultText"></p>
+    <h5>Interview Analysis Result (Log):</h5>
+    <div id="resultTextContainer">
+        <pre id="resultText"></pre> </div>
   </div>
 
   <script>
     let mediaRecorder, recordedChunks = [], resumeId = "";
     const BASE_URL = "https://ai-interview-server-255b.onrender.com"; // Render 서버 주소
+    const USER_ID_EXAMPLE = "testUser123"; // 예시 사용자 ID, 실제 환경에서는 동적으로 할당
+
+    const startButton = document.getElementById("startButton");
+    const stopButton = document.getElementById("stopButton");
+    const statusMessage = document.getElementById("statusMessage");
+    const resultText = document.getElementById("resultText");
+    const questionList = document.getElementById("questionList");
+    const previewVideo = document.getElementById("preview");
 
     async function submitResume() {
-      const resumeText = document.getElementById("resumeText").value;
-      document.getElementById("statusMessage").innerText = "Resume sent. Waiting for questions...";
+      const resumeTextContent = document.getElementById("resumeText").value;
+      if (!resumeTextContent.trim()) {
+        alert("Please enter your resume text.");
+        return;
+      }
+      statusMessage.innerText = "이력서 전송 중... 질문을 기다리고 있습니다...";
+      resultText.innerText = ""; // 이전 결과 초기화
       
-      const res = await fetch(`${BASE_URL}/upload_resume_text`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: resumeText })
-      });
+      try {
+        const res = await fetch(`${BASE_URL}/upload_resume_text`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: resumeTextContent })
+        });
 
-      const data = await res.json();
-      resumeId = data.resume_id;
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({ detail: "Failed to parse error response" }));
+          throw new Error(`이력서 처리 실패: ${res.status} - ${errorData.detail}`);
+        }
 
-      const list = document.getElementById("questionList");
-      list.innerHTML = "";
-      data.questions.forEach(q => {
-        const li = document.createElement("li");
-        li.innerText = q;
-        list.appendChild(li);
-      });
+        const data = await res.json();
+        resumeId = data.resume_id;
 
-      document.getElementById("statusMessage").innerText = "Questions generated successfully.";
+        questionList.innerHTML = ""; // 기존 질문 목록 초기화
+        if (data.questions && data.questions.length > 0) {
+            data.questions.forEach(q => {
+                const li = document.createElement("li");
+                li.innerText = q;
+                questionList.appendChild(li);
+            });
+            statusMessage.innerText = "질문이 성공적으로 생성되었습니다. 녹화를 시작하세요.";
+        } else {
+            statusMessage.innerText = "질문이 생성되었으나, 목록이 비어있습니다.";
+        }
+        startButton.disabled = false; // 녹화 시작 버튼 활성화
+
+      } catch (error) {
+        console.error("Error submitting resume:", error);
+        statusMessage.innerText = `오류 발생: ${error.message}`;
+      }
     }
 
     async function startRecording() {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      document.getElementById("preview").srcObject = stream;
-      recordedChunks = [];
-      mediaRecorder = new MediaRecorder(stream);
-      mediaRecorder.ondataavailable = e => recordedChunks.push(e.data);
-      mediaRecorder.start();
-    }
-
-    async function stopRecording() {
-      mediaRecorder.stop();
-      mediaRecorder.onstop = async () => {
-        const blob = new Blob(recordedChunks, { type: "video/webm" });
-
-        // 카메라 스트림 종료
-        const videoElement = document.getElementById("preview");
-        const stream = videoElement.srcObject;
-        if (stream) {
-          stream.getTracks().forEach(track => track.stop());
-          videoElement.srcObject = null;
+      if (!resumeId) {
+        alert("먼저 이력서를 제출하고 질문을 생성해주세요.");
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); // 오디오는 현재 미사용으로 가정
+        previewVideo.srcObject = stream;
+        recordedChunks = [];
+        // video/mp4가 지원되면 좋지만, 브라우저 호환성상 webm이 일반적
+        const options = { mimeType: 'video/webm; codecs=vp9' }; 
+        try {
+            mediaRecorder = new MediaRecorder(stream, options);
+        } catch (e) {
+            console.warn("vp9 codec for webm not supported, trying default.", e);
+            mediaRecorder = new MediaRecorder(stream); // 기본값으로 재시도
         }
 
-        document.getElementById("statusMessage").innerText = "Uploading video...";
+        mediaRecorder.ondataavailable = e => {
+            if (e.data.size > 0) {
+                recordedChunks.push(e.data);
+            }
+        };
+        mediaRecorder.start();
+        statusMessage.innerText = "녹화 중...";
+        startButton.disabled = true;
+        stopButton.disabled = false;
+      } catch (error) {
+        console.error("Error starting recording:", error);
+        statusMessage.innerText = `녹화 시작 오류: ${error.message}`;
+      }
+    }
+
+    async function stopRecordingAndUpload() {
+      if (!mediaRecorder || mediaRecorder.state === "inactive") {
+        return;
+      }
+      
+      mediaRecorder.onstop = async () => {
+        const videoBlob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || "video/webm" });
+
+        // 카메라 스트림 종료
+        const stream = previewVideo.srcObject;
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+          previewVideo.srcObject = null;
+        }
+
+        statusMessage.innerText = "영상 업로드 및 분석 요청 중...";
+        resultText.innerText = "분석 결과를 기다리는 중입니다..."; // 이전 결과 초기화
 
         const formData = new FormData();
-        formData.append("file", blob);
+        // 서버가 mp4를 기대한다면 파일명에 .mp4를 붙여주는 것이 좋을 수 있음
+        // 하지만 실제 파일 내용은 Blob의 type에 따름 (여기서는 webm)
+        formData.append("file", videoBlob, `interview_${USER_ID_EXAMPLE}_${resumeId}.webm`); 
         formData.append("resume_id", resumeId);
+        formData.append("user_id", USER_ID_EXAMPLE); // user_id 추가!
 
-        await fetch(`${BASE_URL}/upload_video`, { method: "POST", body: formData });
+        try {
+          const uploadResponse = await fetch(`${BASE_URL}/upload_video`, { 
+            method: "POST", 
+            body: formData 
+          });
 
-        const res = await fetch(`${BASE_URL}/get_result/${resumeId}`);
-        const data = await res.json();
-        document.getElementById("resultText").innerText = data.result;
+          if (!uploadResponse.ok) {
+            const errorData = await uploadResponse.json().catch(() => ({ detail: "Failed to parse upload error" }));
+            throw new Error(`영상 업로드 실패: ${uploadResponse.status} - ${errorData.detail}`);
+          }
+          
+          const uploadData = await uploadResponse.json();
+          statusMessage.innerText = `영상 업로드 완료. ${uploadData.message} 분석 결과를 기다립니다... (최대 1-2분 소요)`;
 
-        document.getElementById("statusMessage").innerText = "Video uploaded and analysis complete.";
+          // 분석 시간 대기 (예: 30초. 실제로는 영상 길이에 따라 조절하거나 폴링 방식 사용)
+          // 또는 서버에서 웹소켓 등으로 분석 완료 알림을 주는 것이 가장 좋음
+          const analysisWaitTime = 30000; // 30초 (밀리세컨드 단위)
+          await new Promise(resolve => setTimeout(resolve, analysisWaitTime)); 
+
+          statusMessage.innerText = "분석 결과 요청 중...";
+          const logRes = await fetch(`${BASE_URL}/get_log/${resumeId}`); // 엔드포인트 수정
+
+          if (!logRes.ok) {
+            if (logRes.status === 404) {
+                 const errorData = await logRes.json().catch(() => ({ message: "Log file not found and error response unparsable." }));
+                 resultText.innerText = `분석 로그를 찾을 수 없습니다 (404): ${errorData.message || "서버에서 파일이 아직 준비되지 않았거나 resume_id가 잘못되었을 수 있습니다."}`;
+            } else {
+                const errorText = await logRes.text();
+                throw new Error(`로그 파일 가져오기 실패: ${logRes.status} - ${errorText}`);
+            }
+            statusMessage.innerText = "분석 결과를 가져오는 데 실패했습니다.";
+            return;
+          }
+          
+          const logDataText = await logRes.text(); // .json() 대신 .text() 사용
+          resultText.innerText = logDataText; // <pre> 태그에 텍스트 직접 할당
+
+          statusMessage.innerText = "영상 분석 및 결과 표시 완료.";
+
+        } catch (error) {
+          console.error("Error during upload or fetching log:", error);
+          statusMessage.innerText = `오류 발생: ${error.message}`;
+          resultText.innerText = `결과를 가져오는 중 오류가 발생했습니다: ${error.message}`;
+        } finally {
+            startButton.disabled = false;
+            stopButton.disabled = true;
+        }
       };
+      mediaRecorder.stop();
     }
+
+    // 초기 버튼 상태
+    startButton.disabled = false; // 이력서 제출 후 활성화하도록 변경 가능
+    stopButton.disabled = true;
+
   </script>
 </body>
 </html>
