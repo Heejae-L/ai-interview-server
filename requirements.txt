@@ -6,7 +6,7 @@ typer
 PyPDF2
 pymupdf
 python-dotenv
-
+rich>=13.5.0
 
 # ▶ Static 파일 & HTML 응답
 aiofiles  # fastapi에서 static 파일 처리용
@@ -18,9 +18,18 @@ pyaudio
 pydub
 gtts
 openai-whisper
+torchvision==0.15.2 
+faster-whisper==1.1.1
+PyAudio>=0.2.13
+webrtcvad>=2.0.10
+noisereduce>=2.0.1
+SpeechRecognition>=3.9.0
+langchain-ollama>=0.1.0
+requests>=2.31.0
 
 # ▶ AI 모델 관련
 torch==2.0.1
+torchaudio==2.0.2 
 numpy
 openai
 ipython
@@ -28,3 +37,5 @@ ipython
 
 # ▶ 웹 UI 분석용 (만약 사용하는 경우)
 python-dotenv
+
+
