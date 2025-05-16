@@ -1,217 +1,475 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>AI Interview</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-  <style>
-    #resultText pre { /* 로그 텍스트를 보기 좋게 표시하기 위한 스타일 */
-      background-color: #f8f9fa;
-      border: 1px solid #dee2e6;
-      padding: 10px;
-      white-space: pre-wrap; /* 긴 줄 자동 줄바꿈 */
-      word-wrap: break-word;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unified Interview API Tester</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        h1, h2 { color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        label { display: block; margin-top: 10px; font-weight: bold; }
+        input[type="file"], input[type="text"], textarea {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        input[type="checkbox"] + label {
+            display: inline-block;
+            font-weight: normal;
+            margin-top: 0;
+            margin-left: 5px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 16px;
+        }
+        button:hover { background-color: #0056b3; }
+        pre {
+            background-color: #e9e9e9;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .endpoint { margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px dashed #ccc; }
+        .endpoint:last-child { border-bottom: none; }
+        .multi-input-container div { margin-bottom: 5px; }
+        small { color: #666; display: block; margin-top: 5px;}
+    </style>
 </head>
-<body class="p-4">
-  <h2>AI Interview System</h2>
+<body>
+    <h1>Unified Interview API Tester</h1>
 
-  <div class="mb-3">
-    <h5>Enter Your Resume Information:</h5>
-    <textarea id="resumeText" class="form-control" rows="10" placeholder="Write your resume content here..."></textarea>
-    <button onclick="submitResume()" class="btn btn-primary mt-2">Generate Questions</button>
-  </div>
+    <div class="container">
+        <h2>Interview Core Functions</h2>
 
-  <div class="mb-3">
-    <h5>Generated Questions:</h5>
-    <ul id="questionList"></ul>
-  </div>
+        <div class="endpoint">
+            <h3>Parse Resume (<code>/parse_resume</code>)</h3>
+            <form id="parseResumeForm">
+                <label for="resumeFileParse">Resume File (PDF, DOCX, HWP, JSON):</label>
+                <input type="file" id="resumeFileParse" name="file" accept=".pdf,.docx,.hwp,.json" required>
+                <button type="submit">Parse Resume</button>
+            </form>
+            <h4>Response:</h4>
+            <pre id="parseResumeResponse"></pre>
+        </div>
 
-  <div class="mb-3">
-    <h5>Interview Video</h5>
-    <button id="startButton" onclick="startRecording()" class="btn btn-success">Start Recording</button>
-    <button id="stopButton" onclick="stopRecordingAndUpload()" class="btn btn-danger" disabled>Stop & Upload</button>
-    <video id="preview" autoplay muted class="mt-2" style="width: 100%; max-width: 640px; border: 1px solid #ccc;"></video>
-  </div>
+        <div class="endpoint">
+            <h3>Generate Questions (<code>/generate_questions</code>)</h3>
+            <form id="generateQuestionsForm">
+                <div>
+                    <input type="checkbox" id="useOriginalPdfForQuestions" name="useOriginalPdfForQuestions" disabled>
+                    <label for="useOriginalPdfForQuestions">Use original PDF from parsing step (above)</label>
+                </div>
+                <label for="resumeFileGenerate">Or Upload New PDF File:</label>
+                <input type="file" id="resumeFileGenerate" name="file" accept=".pdf">
+                <button type="submit">Generate Questions</button>
+            </form>
+            <small id="generateQuestionsStatus">Parse a resume first to enable using its original PDF here.</small>
+            <h4>Response:</h4>
+            <pre id="generateQuestionsResponse"></pre>
+        </div>
 
-  <div class="mb-3">
-    <p id="statusMessage" class="text-info"></p>
-  </div>
+        <div class="endpoint">
+            <h3>Transcribe Audio (<code>/transcribe</code>)</h3>
+            <form id="transcribeAudioForm">
+                <label for="audioFileTranscribe">Audio File (WAV, MP3):</label>
+                <input type="file" id="audioFileTranscribe" name="file" accept=".wav,.mp3" required>
+                <button type="submit">Transcribe Audio</button>
+            </form>
+            <h4>Response:</h4>
+            <pre id="transcribeAudioResponse"></pre>
+        </div>
 
-  <div class="mb-3">
-    <h5>Interview Analysis Result (Log):</h5>
-    <div id="resultTextContainer">
-        <pre id="resultText"></pre> </div>
-  </div>
+        <div class="endpoint">
+            <h3>Audio Metrics (<code>/audio_metrics</code>)</h3>
+            <form id="audioMetricsForm">
+                <label for="audioFileMetrics">Audio File (WAV, MP3):</label>
+                <input type="file" id="audioFileMetrics" name="file" accept=".wav,.mp3" required>
+                <button type="submit">Get Audio Metrics</button>
+            </form>
+            <h4>Response:</h4>
+            <pre id="audioMetricsResponse"></pre>
+        </div>
 
-  <script>
-    let mediaRecorder, recordedChunks = [], resumeId = "";
-    const BASE_URL = "https://ai-interview-server-255b.onrender.com"; // Render 서버 주소
-    const USER_ID_EXAMPLE = "testUser123"; // 예시 사용자 ID, 실제 환경에서는 동적으로 할당
+        <div class="endpoint">
+            <h3>Evaluate Interview (<code>/evaluate</code>)</h3>
+            <form id="evaluateInterviewForm">
+                <label>Questions (one per line):</label>
+                <textarea id="evalQuestions" rows="3" placeholder="Question 1&#10;Question 2"></textarea>
+                <label>Answers (one per line, corresponding to questions):</label>
+                <textarea id="evalAnswers" rows="3" placeholder="Answer 1&#10;Answer 2"></textarea>
 
-    const startButton = document.getElementById("startButton");
-    const stopButton = document.getElementById("stopButton");
-    const statusMessage = document.getElementById("statusMessage");
-    const resultText = document.getElementById("resultText");
-    const questionList = document.getElementById("questionList");
-    const previewVideo = document.getElementById("preview");
+                <label for="evalAudioFiles">Audio Files for Answers (multiple):</label>
+                <input type="file" id="evalAudioFiles" name="audio_files" accept=".wav,.mp3" multiple required>
 
-    async function submitResume() {
-      const resumeTextContent = document.getElementById("resumeText").value;
-      if (!resumeTextContent.trim()) {
-        alert("Please enter your resume text.");
-        return;
-      }
-      statusMessage.innerText = "이력서 전송 중... 질문을 기다리고 있습니다...";
-      resultText.innerText = ""; // 이전 결과 초기화
-      
-      try {
-        const res = await fetch(`${BASE_URL}/upload_resume_text`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: resumeTextContent })
-        });
+                <label for="evalOutputFile">Output File Name (on server):</label>
+                <input type="text" id="evalOutputFile" name="output_file_name" value="interview_evaluation.txt" required>
+                <button type="submit">Evaluate Interview</button>
+            </form>
+            <h4>Response (Evaluation Text):</h4>
+            <pre id="evaluateInterviewResponse"></pre>
+        </div>
 
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => ({ detail: "Failed to parse error response" }));
-          throw new Error(`이력서 처리 실패: ${res.status} - ${errorData.detail}`);
-        }
+        <div class="endpoint">
+            <h3>Server Video Recording</h3>
+            <button id="startVideoBtn">Start Video Recording (<code>/video/start</code>)</button>
+            <button id="stopVideoBtn">Stop Video Recording (<code>/video/stop</code>)</button>
+            <h4>Response:</h4>
+            <pre id="videoRecordingResponse"></pre>
+        </div>
 
-        const data = await res.json();
-        resumeId = data.resume_id;
+        <div class="endpoint">
+            <h3>Server Audio Recording & Transcribe (<code>/audio/record_and_transcribe</code>)</h3>
+            <form id="recordAndTranscribeForm">
+                <label for="recordOutputWav">Output WAV File Name (on server):</label>
+                <input type="text" id="recordOutputWav" name="output_file_basename" value="response.wav" required>
+                <button type="submit">Record and Transcribe</button>
+            </form>
+            <h4>Response:</h4>
+            <pre id="recordAndTranscribeResponse"></pre>
+        </div>
+    </div>
 
-        questionList.innerHTML = ""; // 기존 질문 목록 초기화
-        if (data.questions && data.questions.length > 0) {
-            data.questions.forEach(q => {
-                const li = document.createElement("li");
-                li.innerText = q;
-                questionList.appendChild(li);
-            });
-            statusMessage.innerText = "질문이 성공적으로 생성되었습니다. 녹화를 시작하세요.";
+    <div class="container">
+        <h2>Pose Analysis Functions</h2>
+
+        <div class="endpoint">
+            <h3>Analyze Pose from Video (<code>/pose/analyze</code>)</h3>
+            <form id="analyzePoseForm">
+                <label for="videoFilePose">Video File:</label>
+                <input type="file" id="videoFilePose" name="file" accept="video/*" required>
+                <button type="submit">Analyze Pose</button>
+            </form>
+            <h4>Response (Log Content & Video ID):</h4>
+            <pre id="analyzePoseResponse"></pre>
+            <small>Note: If successful, the server returns a video ID. This ID will be auto-filled below if the server sends it in the JSON response (e.g. {"video_id": "...", "log_content": "..."})</small>
+        </div>
+
+        <div class="endpoint">
+            <h3>Get Pose Analysis Log (<code>/pose/log/{video_id}</code>)</h3>
+            <form id="getPoseLogForm">
+                <label for="poseVideoId">Video ID (from server after analysis):</label>
+                <input type="text" id="poseVideoId" name="video_id" placeholder="Enter video ID or it will be auto-filled" required>
+                <button type="submit">Get Log File</button>
+            </form>
+            <h4>Response:</h4>
+            <div id="getPoseLogResponse"></div>
+            <pre id="getPoseLogTextResponse"></pre>
+        </div>
+    </div>
+
+<script>
+    const API_BASE_URL = "";
+
+    // Global variable to store the original PDF File object from the parse step
+    let originalPdfFileFromParseStep = null;
+    // Global variable to store parsed resume JSON data (still useful for display)
+    let parsedResumeJsonData = null;
+
+
+    function displayResponse(elementId, data, isJson = true) {
+        const el = document.getElementById(elementId);
+        if (typeof data === 'string') {
+            el.textContent = data;
+        } else if (isJson) {
+            el.textContent = JSON.stringify(data, null, 2);
         } else {
-            statusMessage.innerText = "질문이 생성되었으나, 목록이 비어있습니다.";
+            el.textContent = data.toString();
         }
-        startButton.disabled = false; // 녹화 시작 버튼 활성화
-
-      } catch (error) {
-        console.error("Error submitting resume:", error);
-        statusMessage.innerText = `오류 발생: ${error.message}`;
-      }
     }
 
-    async function startRecording() {
-      if (!resumeId) {
-        alert("먼저 이력서를 제출하고 질문을 생성해주세요.");
-        return;
-      }
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false }); // 오디오는 현재 미사용으로 가정
-        previewVideo.srcObject = stream;
-        recordedChunks = [];
-        // video/mp4가 지원되면 좋지만, 브라우저 호환성상 webm이 일반적
-        const options = { mimeType: 'video/webm; codecs=vp9' }; 
-        try {
-            mediaRecorder = new MediaRecorder(stream, options);
-        } catch (e) {
-            console.warn("vp9 codec for webm not supported, trying default.", e);
-            mediaRecorder = new MediaRecorder(stream); // 기본값으로 재시도
+    function displayError(elementId, error) {
+        const el = document.getElementById(elementId);
+        let errorMessage = `Error: ${error.message || 'Unknown error'}\n`;
+        if (error.detail) {
+             errorMessage += `Details: ${JSON.stringify(error.detail, null, 2)}`;
         }
-
-        mediaRecorder.ondataavailable = e => {
-            if (e.data.size > 0) {
-                recordedChunks.push(e.data);
-            }
-        };
-        mediaRecorder.start();
-        statusMessage.innerText = "녹화 중...";
-        startButton.disabled = true;
-        stopButton.disabled = false;
-      } catch (error) {
-        console.error("Error starting recording:", error);
-        statusMessage.innerText = `녹화 시작 오류: ${error.message}`;
-      }
+        el.textContent = errorMessage;
+        console.error(error);
     }
 
-    async function stopRecordingAndUpload() {
-      if (!mediaRecorder || mediaRecorder.state === "inactive") {
-        return;
-      }
-      
-      mediaRecorder.onstop = async () => {
-        const videoBlob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || "video/webm" });
+    // Parse Resume
+    document.getElementById('parseResumeForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const resumeFileParseInput = document.getElementById('resumeFileParse');
+        const formData = new FormData(this); // 'this' refers to the form
+        
+        const responseEl = document.getElementById('parseResumeResponse');
+        const generateQuestionsStatusEl = document.getElementById('generateQuestionsStatus');
+        const useOriginalPdfCheckbox = document.getElementById('useOriginalPdfForQuestions');
 
-        // 카메라 스트림 종료
-        const stream = previewVideo.srcObject;
-        if (stream) {
-          stream.getTracks().forEach(track => track.stop());
-          previewVideo.srcObject = null;
-        }
-
-        statusMessage.innerText = "영상 업로드 및 분석 요청 중...";
-        resultText.innerText = "분석 결과를 기다리는 중입니다..."; // 이전 결과 초기화
-
-        const formData = new FormData();
-        // 서버가 mp4를 기대한다면 파일명에 .mp4를 붙여주는 것이 좋을 수 있음
-        // 하지만 실제 파일 내용은 Blob의 type에 따름 (여기서는 webm)
-        formData.append("file", videoBlob, `interview_${USER_ID_EXAMPLE}_${resumeId}.webm`); 
-        formData.append("resume_id", resumeId);
-        formData.append("user_id", USER_ID_EXAMPLE); // user_id 추가!
-
-        try {
-          const uploadResponse = await fetch(`${BASE_URL}/upload_video`, { 
-            method: "POST", 
-            body: formData 
-          });
-
-          if (!uploadResponse.ok) {
-            const errorData = await uploadResponse.json().catch(() => ({ detail: "Failed to parse upload error" }));
-            throw new Error(`영상 업로드 실패: ${uploadResponse.status} - ${errorData.detail}`);
-          }
-          
-          const uploadData = await uploadResponse.json();
-          statusMessage.innerText = `영상 업로드 완료. ${uploadData.message} 분석 결과를 기다립니다... (최대 1-2분 소요)`;
-
-          // 분석 시간 대기 (예: 30초. 실제로는 영상 길이에 따라 조절하거나 폴링 방식 사용)
-          // 또는 서버에서 웹소켓 등으로 분석 완료 알림을 주는 것이 가장 좋음
-          const analysisWaitTime = 30000; // 30초 (밀리세컨드 단위)
-          await new Promise(resolve => setTimeout(resolve, analysisWaitTime)); 
-
-          statusMessage.innerText = "분석 결과 요청 중...";
-          const logRes = await fetch(`${BASE_URL}/get_log/${resumeId}`); // 엔드포인트 수정
-
-          if (!logRes.ok) {
-            if (logRes.status === 404) {
-                 const errorData = await logRes.json().catch(() => ({ message: "Log file not found and error response unparsable." }));
-                 resultText.innerText = `분석 로그를 찾을 수 없습니다 (404): ${errorData.message || "서버에서 파일이 아직 준비되지 않았거나 resume_id가 잘못되었을 수 있습니다."}`;
+        // Store the original file if it's a PDF, for potential reuse
+        if (resumeFileParseInput.files.length > 0) {
+            const file = resumeFileParseInput.files[0];
+            if (file.type === "application/pdf") {
+                originalPdfFileFromParseStep = file;
             } else {
-                const errorText = await logRes.text();
-                throw new Error(`로그 파일 가져오기 실패: ${logRes.status} - ${errorText}`);
+                originalPdfFileFromParseStep = null; // Clear if not a PDF, or handle other types if needed
             }
-            statusMessage.innerText = "분석 결과를 가져오는 데 실패했습니다.";
-            return;
-          }
-          
-          const logDataText = await logRes.text(); // .json() 대신 .text() 사용
-          resultText.innerText = logDataText; // <pre> 태그에 텍스트 직접 할당
+        } else {
+            originalPdfFileFromParseStep = null;
+        }
 
-          statusMessage.innerText = "영상 분석 및 결과 표시 완료.";
+        try {
+            const response = await fetch(`${API_BASE_URL}/parse_resume`, { method: 'POST', body: formData });
+            const data = await response.json(); 
+            if (!response.ok) throw data; 
+            
+            displayResponse('parseResumeResponse', data);
+            parsedResumeJsonData = data; 
+            
+            if (originalPdfFileFromParseStep) {
+                generateQuestionsStatusEl.textContent = `Parsed data from '${originalPdfFileFromParseStep.name}'. You can use this original PDF for question generation below.`;
+                useOriginalPdfCheckbox.disabled = false;
+                useOriginalPdfCheckbox.checked = true;
+            } else {
+                generateQuestionsStatusEl.textContent = 'Parsed data is available. If it was a PDF, you can use it below. Otherwise, please upload a PDF for question generation.';
+                useOriginalPdfCheckbox.disabled = true;
+                useOriginalPdfCheckbox.checked = false;
+            }
 
         } catch (error) {
-          console.error("Error during upload or fetching log:", error);
-          statusMessage.innerText = `오류 발생: ${error.message}`;
-          resultText.innerText = `결과를 가져오는 중 오류가 발생했습니다: ${error.message}`;
-        } finally {
-            startButton.disabled = false;
-            stopButton.disabled = true;
+            if (error.detail) {
+                 displayError('parseResumeResponse', error);
+            } else {
+                 displayError('parseResumeResponse', { message: error.message || `Failed to parse resume. Status: ${event.target.status}` });
+            }
+            parsedResumeJsonData = null;
+            originalPdfFileFromParseStep = null; // Clear stored PDF on error
+            generateQuestionsStatusEl.textContent = 'Failed to parse resume. Please try again or upload a PDF directly below.';
+            useOriginalPdfCheckbox.disabled = true;
+            useOriginalPdfCheckbox.checked = false;
         }
-      };
-      mediaRecorder.stop();
-    }
+    });
 
-    // 초기 버튼 상태
-    startButton.disabled = false; // 이력서 제출 후 활성화하도록 변경 가능
-    stopButton.disabled = true;
+    // Generate Questions
+    document.getElementById('generateQuestionsForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const formData = new FormData();
+        const useOriginalPdfCheckbox = document.getElementById('useOriginalPdfForQuestions');
+        const fileInputForGenerate = document.getElementById('resumeFileGenerate');
+        const responseEl = document.getElementById('generateQuestionsResponse');
+        const statusEl = document.getElementById('generateQuestionsStatus');
 
-  </script>
+        let fileToSend = null;
+        let sourceDescription = "";
+
+        if (useOriginalPdfCheckbox.checked && originalPdfFileFromParseStep) {
+            fileToSend = originalPdfFileFromParseStep; // Use the stored original PDF File object
+            formData.append('file', fileToSend, fileToSend.name); // Use its original name
+            sourceDescription = `Using original PDF '${fileToSend.name}' from parsing step.`;
+        } else if (fileInputForGenerate.files.length > 0) {
+            fileToSend = fileInputForGenerate.files[0];
+            if (fileToSend.type !== "application/pdf") {
+                displayError(responseEl.id, {message: 'Please upload a PDF file for question generation.'});
+                statusEl.textContent = 'Action failed: PDF file required.';
+                return;
+            }
+            formData.append('file', fileToSend);
+            sourceDescription = `Using newly uploaded PDF: ${fileToSend.name}.`;
+        } else {
+            displayError(responseEl.id, {message: 'No PDF file specified. Please select a PDF or use the checkbox if a PDF was parsed previously.'});
+            statusEl.textContent = 'Action failed: No PDF specified.';
+            return;
+        }
+        
+        statusEl.textContent = sourceDescription + " Generating questions...";
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/generate_questions`, { method: 'POST', body: formData });
+            const data = await response.json();
+            if (!response.ok) throw data;
+            displayResponse('generateQuestionsResponse', data);
+        } catch (error) {
+            displayError('generateQuestionsResponse', error);
+        } finally {
+             statusEl.textContent = sourceDescription + " Done.";
+        }
+    });
+
+    // Transcribe Audio
+    document.getElementById('transcribeAudioForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const formData = new FormData(this);
+        try {
+            const response = await fetch(`${API_BASE_URL}/transcribe`, { method: 'POST', body: formData });
+            const data = await response.json();
+            if (!response.ok) throw data;
+            displayResponse('transcribeAudioResponse', data);
+        } catch (error) {
+            displayError('transcribeAudioResponse', error);
+        }
+    });
+
+    // Audio Metrics
+    document.getElementById('audioMetricsForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const formData = new FormData(this);
+        try {
+            const response = await fetch(`${API_BASE_URL}/audio_metrics`, { method: 'POST', body: formData });
+            const data = await response.json();
+            if (!response.ok) throw data;
+            displayResponse('audioMetricsResponse', data);
+        } catch (error) {
+            displayError('audioMetricsResponse', error);
+        }
+    });
+
+    // Evaluate Interview
+    document.getElementById('evaluateInterviewForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const formData = new FormData();
+        const questions = document.getElementById('evalQuestions').value.split('\n').filter(q => q.trim() !== '');
+        const answers = document.getElementById('evalAnswers').value.split('\n').filter(a => a.trim() !== '');
+        
+        questions.forEach(q => formData.append('questions', q));
+        answers.forEach(a => formData.append('answers', a));
+
+        const audioFiles = document.getElementById('evalAudioFiles').files;
+        for (let i = 0; i < audioFiles.length; i++) {
+            formData.append('audio_files', audioFiles[i]);
+        }
+        formData.append('output_file_name', document.getElementById('evalOutputFile').value);
+
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/evaluate`, { method: 'POST', body: formData });
+            const textData = await response.text();
+            if (!response.ok) {
+                try { const errorJson = JSON.parse(textData); throw errorJson; }
+                catch (e) { throw new Error(`Server error: ${response.status} - ${textData}`);}
+            }
+            displayResponse('evaluateInterviewResponse', textData, false);
+        } catch (error) {
+            displayError('evaluateInterviewResponse', error);
+        }
+    });
+
+    // Video Recording Start
+    document.getElementById('startVideoBtn').addEventListener('click', async function() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/video/start`, { method: 'POST' });
+            const data = await response.json();
+            if (!response.ok) throw data;
+            displayResponse('videoRecordingResponse', data);
+        } catch (error) {
+            displayError('videoRecordingResponse', error);
+        }
+    });
+
+    // Video Recording Stop
+    document.getElementById('stopVideoBtn').addEventListener('click', async function() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/video/stop`, { method: 'POST' });
+            const data = await response.json();
+            if (!response.ok) throw data;
+            displayResponse('videoRecordingResponse', data);
+        } catch (error) {
+            displayError('videoRecordingResponse', error);
+        }
+    });
+    
+    // Record and Transcribe Audio
+    document.getElementById('recordAndTranscribeForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const formData = new FormData(this); // 'this' is the form
+        // The input name in HTML is already 'output_file_basename', so no renaming needed if it matches FastAPI
+        try {
+            const response = await fetch(`${API_BASE_URL}/audio/record_and_transcribe`, { method: 'POST', body: formData });
+            const data = await response.json();
+            if (!response.ok) throw data;
+            displayResponse('recordAndTranscribeResponse', data);
+        } catch (error) {
+            displayError('recordAndTranscribeResponse', error);
+        }
+    });
+
+    // Analyze Pose
+    document.getElementById('analyzePoseForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const formData = new FormData(this);
+        const responseEl = document.getElementById('analyzePoseResponse');
+        const videoIdInput = document.getElementById('poseVideoId');
+        try {
+            const response = await fetch(`${API_BASE_URL}/pose/analyze`, { method: 'POST', body: formData });
+            const data = await response.json(); 
+            if (!response.ok) throw data; 
+
+            displayResponse('analyzePoseResponse', data.log_content || "No log content in response.", false);
+
+            if (data.video_id) {
+                videoIdInput.value = data.video_id;
+                responseEl.textContent += `\n\nVideo ID for log retrieval: ${data.video_id} (auto-filled below).`;
+            } else {
+                responseEl.textContent += "\n\nVideo ID not found in response. Please enter manually below.";
+            }
+
+        } catch (error) {
+            videoIdInput.value = ''; 
+            if (error.detail) {
+                 displayError('analyzePoseResponse', error);
+            } else {
+                 displayError('analyzePoseResponse', { message: error.message || `Failed to analyze pose. Status: ${event.target.status}` });
+            }
+        }
+    });
+
+    // Get Pose Log
+    document.getElementById('getPoseLogForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const videoId = document.getElementById('poseVideoId').value;
+        const responseContainer = document.getElementById('getPoseLogResponse'); 
+        const textContainer = document.getElementById('getPoseLogTextResponse'); 
+        responseContainer.innerHTML = ''; 
+        textContainer.textContent = '';   
+
+        if (!videoId) {
+            displayError('getPoseLogTextResponse', { message: 'Video ID is required.' });
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/pose/log/${videoId}`, { method: 'GET' });
+            if (!response.ok) {
+                try { const errorData = await response.json(); throw errorData; }
+                catch (e) { throw new Error(`Server error: ${response.status}`);}
+            }
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${videoId}.txt`; 
+            a.textContent = `Download ${videoId}.txt`;
+            responseContainer.appendChild(a);
+            responseContainer.appendChild(document.createElement('br')); 
+
+            if (blob.size < 1024 * 50) { 
+                 const textContent = await blob.text();
+                 displayResponse('getPoseLogTextResponse', textContent, false);
+            } else {
+                 textContainer.textContent = "Log file is large, please use the download link.";
+            }
+            // Consider revoking object URL after use if not needed for long
+            // setTimeout(() => window.URL.revokeObjectURL(url), 60000); // e.g., after 1 minute
+
+        } catch (error) {
+            displayError('getPoseLogTextResponse', error);
+        }
+    });
+
+</script>
 </body>
 </html>

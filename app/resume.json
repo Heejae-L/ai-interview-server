@@ -1,0 +1,41 @@
+{
+    "personal_detail": {
+        "first_name": "Hyun Soo",
+        "last_name": "Kim",
+        "email": "HyunK12@gmail.com",
+        "phone_number": "010-1234-5678",
+        "location": "Seoul, Republic of Korea",
+        "portfolio_website_url": null,
+        "linkedin_url": null,
+        "github_main_page_url": "github.com/masibasi"
+    },
+    "education_history": [
+        {
+            "university": "Gachon University",
+            "education_level": "Undergraduate",
+            "graduation_year": "2018",
+            "graduation_month": null,
+            "majors": "Software",
+            "GPA": null
+        }
+    ],
+    "work_experience": [],
+    "project_experience": [
+        {
+            "project_name": "LDC (Learn, Dance, Challenge)",
+            "project_description": "an application that helps you to learn dances. Application compares user's dance and the dance recorded in video to tell you what is wrong. Teach user dance in sequential steps. Core Technology : OpenPose Skeleton Detection, LSTM Dance Detection - Frontend : React"
+        }
+    ],
+    "technical_skills": [
+        "Git",
+        "React",
+        "React Native",
+        "Python",
+        "Javascript",
+        "C",
+        "Java",
+        "OpenPose Skeleton Detection",
+        "LSTM",
+        "React"
+    ]
+}
