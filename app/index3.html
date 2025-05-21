@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>AI 모의 면접 시스템</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h2 { margin-top: 40px; }
+    input[type="file"] { margin-bottom: 10px; }
+    button { margin-top: 5px; padding: 5px 10px; }
+    textarea, pre { width: 100%; min-height: 100px; margin-top: 10px; white-space: pre-wrap; }
+    #videoElement { width: 480px; height: 360px; background: #eee; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+<h1>🧠 AI 모의 면접 시스템</h1>
+
+<!-- 1. 이력서 업로드 및 분석 -->
+<h2>1. 이력서 분석</h2>
+<input type="file" id="resumeFile">
+<button onclick="uploadResume()">분석</button>
+<pre id="resumeResult"></pre>
+
+<!-- 2. 질문 생성 -->
+<h2>2. 질문 생성</h2>
+<input type="file" id="resumeForQuestions">
+<button onclick="generateQuestions()">질문 생성</button>
+<ol id="questionList"></ol>
+
+<!-- 3. 인터뷰 영상 녹화 및 저장 -->
+<h2>3. 인터뷰 녹화</h2>
+<button onclick="startRecording()">녹화 시작</button>
+<button onclick="stopRecordingAndUpload()">녹화 종료 및 영상 업로드</button>
+<video id="videoElement" autoplay muted></video>
+
+<!-- 4. 질문 음성 출력 -->
+<h2>4. 질문 음성 출력</h2>
+<button onclick="speakQuestions()">질문 읽기</button>
+
+<!-- 5. 분석 결과 출력 (웹캠 기반 녹화된 영상) -->
+<h2>5. 웹캠 녹화 영상 분석 결과</h2>
+<pre id="log"></pre>
+
+<!-- 6. 저장된 영상 파일 업로드 및 분석 -->
+<h2>6. 저장된 영상 파일 업로드 및 분석</h2>
+<input type="file" id="videoFileUpload">
+<button onclick="uploadVideoFile()">분석 시작</button>
+<pre id="fileUploadLog"></pre>
+
+<script>
+  let generatedQuestions = [];
+  let mediaRecorder;
+  let recordedChunks = [];
+
+  async function uploadResume() {
+    const fileInput = document.getElementById('resumeFile');
+    if (!fileInput.files.length) return alert("이력서를 선택하세요.");
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    const res = await fetch('/parse_resume', { method: 'POST', body: formData });
+    const data = await res.json();
+    document.getElementById('resumeResult').textContent = JSON.stringify(data, null, 2);
+  }
+
+  async function generateQuestions() {
+    const fileInput = document.getElementById('resumeForQuestions');
+    if (!fileInput.files.length) return alert("이력서를 선택하세요.");
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    const res = await fetch('/generate_questions', { method: 'POST', body: formData });
+    const data = await res.json();
+    const list = document.getElementById('questionList');
+    list.innerHTML = '';
+    generatedQuestions = data.questions;
+    data.questions.forEach(q => {
+      const li = document.createElement('li');
+      li.textContent = q;
+      list.appendChild(li);
+    });
+  }
+
+  async function startRecording() {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    const videoEl = document.getElementById("videoElement");
+    videoEl.srcObject = stream;
+
+    recordedChunks = [];
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = e => {
+      if (e.data.size > 0) recordedChunks.push(e.data);
+    };
+    mediaRecorder.start();
+    alert("녹화 시작됨");
+  }
+
+  function stopRecordingAndUpload() {
+    if (!mediaRecorder) return alert("먼저 녹화를 시작하세요.");
+
+    mediaRecorder.stop();
+    const videoEl = document.getElementById("videoElement");
+
+    mediaRecorder.onstop = () => {
+      // 카메라 끄기
+      const stream = videoEl.srcObject;
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        videoEl.srcObject = null; // 화면에서 제거
+      }
+
+      const blob = new Blob(recordedChunks, { type: "video/webm" });
+      const formData = new FormData();
+      formData.append("file", blob, "interview_recording.webm");
+
+      fetch("/pose/analyze", {
+        method: "POST",
+        body: formData,
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("log").textContent = data.log_content;
+        alert("녹화 영상 분석 완료");
+      })
+      .catch(err => {
+        console.error(err);
+        alert("분석 실패: " + err);
+      });
+    };
+  }
+
+
+  function speakQuestions() {
+    if (generatedQuestions.length === 0) return alert("먼저 질문을 생성하세요.");
+    const utterance = new SpeechSynthesisUtterance(generatedQuestions.join(". 다음 질문. "));
+    utterance.lang = 'ko-KR';
+    speechSynthesis.speak(utterance);
+  }
+
+  async function uploadVideoFile() {
+    const fileInput = document.getElementById('videoFileUpload');
+    if (!fileInput.files.length) return alert("영상을 선택하세요.");
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    fetch("/pose/analyze", {
+      method: "POST",
+      body: formData,
+    })
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById("fileUploadLog").textContent = data.log_content;
+      alert("파일 영상 분석 완료");
+    })
+    .catch(err => {
+      console.error(err);
+      alert("분석 실패: " + err);
+    });
+  }
+</script>
+
+</body>
+</html>
